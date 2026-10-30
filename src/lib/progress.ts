@@ -42,12 +42,19 @@ function load(): ProgressState {
   }
 }
 
-/** Refill hearts and update streak when the day changes. */
+/** Refill hearts when the day changes. The streak is NOT touched here — it only grows when a lesson is completed. */
 function touchDay(s: ProgressState): ProgressState {
   const t = today();
   if (s.lastActiveDate === t) return s;
+  return { ...s, hearts: MAX_HEARTS };
+}
+
+/** Count a streak day: called when a lesson is completed. Consecutive days extend the streak, a gap resets it to 1. */
+export function bumpStreak(s: ProgressState): ProgressState {
+  const t = today();
+  if (s.lastActiveDate === t) return s;
   const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  return { ...s, hearts: MAX_HEARTS, streakDays: s.lastActiveDate === y ? s.streakDays + 1 : 1, lastActiveDate: t };
+  return { ...s, streakDays: s.lastActiveDate === y ? s.streakDays + 1 : 1, lastActiveDate: t };
 }
 
 const ProgressContext = createContext<Ctx | null>(null);
@@ -73,7 +80,10 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   const addXp = useCallback((n: number) => setState((s) => ({ ...touchDay(s), xp: s.xp + n })), []);
   const loseHeart = useCallback(() => setState((s) => ({ ...s, hearts: Math.max(0, s.hearts - 1) })), []);
   const completeLesson = useCallback(
-    (id: string) => setState((s) => (s.completedLessonIds.includes(id) ? s : { ...s, completedLessonIds: [...s.completedLessonIds, id] })),
+    (id: string) =>
+      setState((s) =>
+        s.completedLessonIds.includes(id) ? s : bumpStreak({ ...s, completedLessonIds: [...s.completedLessonIds, id] }),
+      ),
     [],
   );
   const setAccount = useCallback((account: Account) => setState((s) => ({ ...s, account })), []);

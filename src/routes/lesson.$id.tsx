@@ -4,8 +4,7 @@ import { Heart, X } from "lucide-react";
 import { AquilaMascot } from "@/components/aquila/AquilaMascot";
 import { QuizRunner } from "@/components/aquila/QuizRunner";
 import { Button } from "@/components/ui/button";
-import lessonsData from "@/content/lessons.json";
-import type { Lesson } from "@/lib/contracts";
+import { ALL_LESSONS } from "@/content/unit0";
 import { useProgress } from "@/lib/progress";
 
 export const Route = createFileRoute("/lesson/$id")({
@@ -26,7 +25,7 @@ type Phase = { kind: "intro"; i: number } | { kind: "quiz"; i: number } | { kind
 
 function LessonPage() {
   const { id } = Route.useParams();
-  const lesson = (lessonsData.lessons as Lesson[]).find((l) => l.id === id);
+  const lesson = ALL_LESSONS.find((l) => l.id === id);
   const { hearts, loseHeart, addXp, completeLesson } = useProgress();
   const [phase, setPhase] = useState<Phase>({ kind: "intro", i: 0 });
 

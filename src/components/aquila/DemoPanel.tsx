@@ -2,13 +2,12 @@ import { Heart, RotateCcw, Settings, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import lessonsData from "@/content/lessons.json";
-import type { Lesson } from "@/lib/contracts";
+import { ALL_LESSONS } from "@/content/unit0";
 import { useProgress } from "@/lib/progress";
 
 export function DemoPanel() {
   const { resetAll, refillHearts, unlockLessons } = useProgress();
-  const ids = (lessonsData.lessons as Lesson[]).map((l) => l.id);
+  const ids = ALL_LESSONS.map((l) => l.id);
   return (
     <Dialog>
       <DialogTrigger asChild>

@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { generateQuiz } from "@/lib/api";
 import type { LessonTag, QuizQuestion, Source } from "@/lib/contracts";
 import { cn } from "@/lib/utils";
+import { UNIT0_LESSONS } from "@/content/unit0";
 
 export const Route = createFileRoute("/practice")({
   head: () => ({
     meta: [
       { title: "Practice — Aquila" },
-      { name: "description", content: "Sharpen your trading skills with AI-generated quizzes on any topic." },
+      { name: "description", content: "Practice money basics and trading skills with quick quizzes." },
       { property: "og:title", content: "Practice — Aquila" },
-      { property: "og:description", content: "Sharpen your trading skills with AI-generated quizzes on any topic." },
+      { property: "og:description", content: "Practice money basics and trading skills with quick quizzes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -32,10 +33,19 @@ const TAGS: { tag: LessonTag; label: string }[] = [
   { tag: "psychology", label: "Psychology" },
 ];
 
+// Unit 0 money topics: LessonTag is frozen, so these quiz from the local Unit 0 questions.
+const MONEY_TOPICS = UNIT0_LESSONS.map((l) => ({ id: l.id, label: l.title }));
+
+function moneyQuiz(lessonId: string): QuizQuestion[] {
+  const lesson = UNIT0_LESSONS.find((l) => l.id === lessonId);
+  return [...(lesson?.questions ?? [])].sort(() => Math.random() - 0.5);
+}
+
 type Quiz = { questions: QuizQuestion[]; source: Source };
 
 function PracticePage() {
-  const [tag, setTag] = useState<LessonTag>("candles");
+  const [tag, setTag] = useState<LessonTag | null>(null);
+  const [money, setMoney] = useState<string | null>(MONEY_TOPICS[0]?.id ?? null);
   const [difficulty, setDifficulty] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -44,7 +54,12 @@ function PracticePage() {
   const start = async () => {
     setLoading(true);
     setResult(null);
-    const res = await generateQuiz({ tag, difficulty, count: 5 });
+    if (money) {
+      setQuiz({ questions: moneyQuiz(money), source: "fallback" });
+      setLoading(false);
+      return;
+    }
+    const res = await generateQuiz({ tag: tag ?? "candles", difficulty, count: 5 });
     setQuiz(res.questions.length ? res : null);
     setLoading(false);
   };
@@ -89,9 +104,22 @@ function PracticePage() {
         <p className="mt-1 font-semibold text-muted-foreground">Pick a topic and difficulty. Aquila writes fresh questions for you.</p>
       </div>
 
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-extrabold uppercase text-muted-foreground">Money basics</span>
+        <div className="flex flex-wrap gap-2">
+          {MONEY_TOPICS.map((t) => (
+            <button key={t.id} type="button" onClick={() => { setMoney(t.id); setTag(null); }} className={cn(
+              "btn-3d rounded-full border-2 border-b-4 px-4 py-2 font-extrabold",
+              money === t.id ? "border-accent-shadow bg-accent text-accent-foreground" : "border-border bg-card text-muted-foreground hover:text-primary",
+            )}>{t.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <span className="-mb-4 text-xs font-extrabold uppercase text-muted-foreground">Trading skills</span>
       <div className="flex flex-wrap gap-2">
         {TAGS.map((t) => (
-          <button key={t.tag} type="button" onClick={() => setTag(t.tag)} className={cn(
+          <button key={t.tag} type="button" onClick={() => { setTag(t.tag); setMoney(null); }} className={cn(
             "btn-3d rounded-full border-2 border-b-4 px-4 py-2 font-extrabold",
             tag === t.tag ? "border-accent-shadow bg-accent text-accent-foreground" : "border-border bg-card text-muted-foreground hover:text-primary",
           )}>{t.label}</button>
@@ -110,7 +138,7 @@ function PracticePage() {
         </div>
       </div>
 
-      <Button variant="chunky" size="xl" className="w-full sm:w-fit" onClick={start}>Generate 5 questions</Button>
+      <Button variant="chunky" size="xl" className="w-full sm:w-fit" onClick={start}>{money ? "Start quiz" : "Generate 5 questions"}</Button>
     </section>
   );
 }

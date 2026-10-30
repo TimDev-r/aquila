@@ -23,7 +23,7 @@ export const Route = createFileRoute("/coach")({
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const STARTERS = ["What is a stop loss?", "How do I read a candle?", "How much should I risk per trade?", "Why do I keep revenge trading?"];
+const STARTERS = ["How do I start a budget?", "What is compound interest?", "Why do I need an emergency fund?", "What is a stop loss?", "How do I read a candle?", "How much should I risk per trade?", "Why do I keep revenge trading?"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Recognition = any;
