@@ -4,19 +4,400 @@
       "id": "l1-candles",
       "order": 1,
       "tag": "candles",
-      "title": "Reading a candle",
+      "title": "Reading Candlesticks",
       "intro": [
-        "Each candle shows four prices for one time period: open, high, low and close.",
-        "A green candle closed higher than it opened. A red candle closed lower.",
-        "The thin lines (wicks) show how far price travelled before settling."
+        "Every candlestick shows four prices for one time period: Open, High, Low and Close (OHLC). A 5-minute candle covers every trade between, say, 12:00 and 12:05.",
+        "The thick body spans from Open to Close. Green means price closed higher than it opened (open $100, close $105). Red means it closed lower.",
+        "The thin lines above and below the body are wicks. They show the highest and lowest prices reached before the candle closed."
       ],
       "questions": [
-        { "id": "q1", "question": "What does a green candle mean?", "options": ["Price closed higher than it opened", "Price closed lower than it opened", "Volume was high", "The market is closed"], "correctIndex": 0, "explanation": "Green means the close is above the open.", "tag": "candles" },
-        { "id": "q2", "question": "What do the wicks show?", "options": ["Trading volume", "The highest and lowest prices", "The average price", "Tomorrow's price"], "correctIndex": 1, "explanation": "Wicks mark the high and low reached during the period.", "tag": "candles" },
-        { "id": "q3", "question": "How many prices does one candle summarise?", "options": ["One", "Two", "Three", "Four"], "correctIndex": 3, "explanation": "Open, high, low and close: four prices.", "tag": "candles" },
-        { "id": "q4", "question": "A long upper wick on a red candle suggests…", "options": ["Buyers stayed in control", "Sellers pushed price back down", "Nothing at all", "The chart is broken"], "correctIndex": 1, "explanation": "Price went up but sellers pushed it back down before the close.", "tag": "candles" }
+        {
+          "id": "l1-q1",
+          "question": "What does a green candlestick tell you?",
+          "options": [
+            "Price closed higher than it opened.",
+            "Price closed lower than it opened, so sellers won.",
+            "Trading volume was above average.",
+            "Price will rise in the next candle."
+          ],
+          "correctIndex": 0,
+          "explanation": "Green means the close is above the open. It describes the past, not the future.",
+          "tag": "candles"
+        },
+        {
+          "id": "l1-q2",
+          "question": "A candle opens at $50, reaches $55, dips to $48 and closes at $53. Where do the wicks end?",
+          "options": [
+            "There are no wicks on a green candle.",
+            "Upper wick at $55, lower wick at $48.",
+            "Upper wick at $53, lower wick at $50.",
+            "Both wicks end at $51.50, the midpoint."
+          ],
+          "correctIndex": 1,
+          "explanation": "The body runs from $50 (open) to $53 (close). The wicks stretch to the high of $55 and the low of $48.",
+          "tag": "candles"
+        },
+        {
+          "id": "l1-q3",
+          "question": "A red candle has a very long lower wick. What happened during that period?",
+          "options": [
+            "No buyers traded at all.",
+            "Price closed at its lowest point.",
+            "Sellers pushed price down, then buyers lifted it off the lows.",
+            "The exchange reported a data error."
+          ],
+          "correctIndex": 2,
+          "explanation": "A long lower wick means lower prices were rejected. Buyers absorbed the selling before the candle closed.",
+          "tag": "candles"
+        },
+        {
+          "id": "l1-q4",
+          "question": "How many prices does one candlestick summarise?",
+          "options": [
+            "One: the close.",
+            "Two: open and close.",
+            "Three: the high, the low and the average price traded.",
+            "Four: open, high, low and close."
+          ],
+          "correctIndex": 3,
+          "explanation": "A candle captures open, high, low and close (OHLC). Together they show who controlled that period.",
+          "tag": "candles"
+        }
       ],
       "xp": 15
+    },
+    {
+      "id": "l2-trend",
+      "order": 2,
+      "tag": "trend",
+      "title": "Market Trends",
+      "intro": [
+        "Prices move in waves, not straight lines. An uptrend makes higher highs and higher lows: each dip stops above the last one.",
+        "A downtrend is the mirror image: lower highs and lower lows. Each bounce fails below the previous peak.",
+        "When price swings between a clear ceiling and floor without new highs or lows, the market is sideways, also called a range."
+      ],
+      "questions": [
+        {
+          "id": "l2-q1",
+          "question": "How does price usually behave in a sideways market?",
+          "options": [
+            "It bounces between a horizontal floor and ceiling.",
+            "It rises steadily for weeks with almost no pullbacks along the way.",
+            "It sets a new record high every day.",
+            "It falls in a straight line."
+          ],
+          "correctIndex": 0,
+          "explanation": "A sideways market has no clear direction. Price trades back and forth inside a range.",
+          "tag": "trend"
+        },
+        {
+          "id": "l2-q2",
+          "question": "BTC rises from $60,000 to $64,000, dips to $62,000, then climbs to $67,000. What structure is this?",
+          "options": [
+            "A sideways range.",
+            "An uptrend: a higher low, then a higher high.",
+            "A downtrend reversal.",
+            "No structure at all."
+          ],
+          "correctIndex": 1,
+          "explanation": "The dip held above the start ($62,000 > $60,000) and the next peak was higher ($67,000 > $64,000). That is an uptrend.",
+          "tag": "trend"
+        },
+        {
+          "id": "l2-q3",
+          "question": "Which is a key structural warning that an uptrend may be ending?",
+          "options": [
+            "Volume is slightly lower on a holiday.",
+            "A single red candle appears on a 1-minute chart during the move.",
+            "Price breaks below the most recent higher low.",
+            "Price touches a round number like $50,000."
+          ],
+          "correctIndex": 2,
+          "explanation": "Breaking the last higher low breaks the uptrend pattern. It shows buyers failed to defend their previous floor.",
+          "tag": "trend"
+        },
+        {
+          "id": "l2-q4",
+          "question": "In a clear downtrend, what does a disciplined beginner usually avoid?",
+          "options": [
+            "Waiting on the sidelines until the structure clearly changes.",
+            "Studying where the last lower high formed.",
+            "Practising with small paper trades.",
+            "Buying every dip expecting an instant turnaround."
+          ],
+          "correctIndex": 3,
+          "explanation": "Buying every dip means fighting the trend, which often leads to repeated losses. Staying out is also a valid decision.",
+          "tag": "trend"
+        }
+      ],
+      "xp": 15
+    },
+    {
+      "id": "l3-levels",
+      "order": 3,
+      "tag": "support_resistance",
+      "title": "Support and Resistance",
+      "intro": [
+        "Support is a price floor where buyers stepped in before. Traders remember those bounces and place buy orders there again.",
+        "Resistance is a price ceiling where sellers stepped in before. Price stalls there as traders take profit or sell.",
+        "When price breaks clearly through a level and holds, the old ceiling often becomes the new floor. If it quickly falls back, it was a false breakout."
+      ],
+      "questions": [
+        {
+          "id": "l3-q1",
+          "question": "What is a false breakout?",
+          "options": [
+            "A breakout that happens on a weekend.",
+            "A breakout announced in the news.",
+            "Price pokes through a level, then quickly falls back inside.",
+            "Any breakout above $100."
+          ],
+          "correctIndex": 2,
+          "explanation": "A false breakout briefly crosses a level and then reverses. It traps traders who bought the moment price crossed.",
+          "tag": "support_resistance"
+        },
+        {
+          "id": "l3-q2",
+          "question": "SOL has risen to $150 four times this week and failed to close above it each time. What is $150?",
+          "options": [
+            "Support.",
+            "Resistance.",
+            "A stop loss.",
+            "A guaranteed breakout point."
+          ],
+          "correctIndex": 1,
+          "explanation": "Repeated rejection from above marks resistance. Sellers keep appearing at $150.",
+          "tag": "support_resistance"
+        },
+        {
+          "id": "l3-q3",
+          "question": "Price breaks above resistance at $100 and holds there for several candles. What often happens on the next dip?",
+          "options": [
+            "$100 may now act as support.",
+            "Price must fall back to $50.",
+            "The level stops mattering forever.",
+            "Resistance moves up to $200 automatically."
+          ],
+          "correctIndex": 0,
+          "explanation": "Broken resistance often turns into support. Traders who missed the breakout may buy the retest.",
+          "tag": "support_resistance"
+        },
+        {
+          "id": "l3-q4",
+          "question": "Why does price often react at old support levels?",
+          "options": [
+            "Exchanges automatically block trading at prices below a support level.",
+            "Algorithms only trade round numbers.",
+            "Support is set by regulators each day.",
+            "Many traders remember the level and place orders there."
+          ],
+          "correctIndex": 3,
+          "explanation": "Levels work because people act on them. Clustered buy orders at a remembered price can slow or reverse a fall.",
+          "tag": "support_resistance"
+        }
+      ],
+      "xp": 15
+    },
+    {
+      "id": "l4-stop-loss",
+      "order": 4,
+      "tag": "stop_loss",
+      "title": "The Stop Loss",
+      "intro": [
+        "A stop loss is an order that closes your trade automatically at a price you set in advance. It caps how much one trade can cost you.",
+        "Put the stop beyond the level that proves your idea wrong. Buying at $50 because $48 is support? Your stop belongs just below $48, not at a random number.",
+        "Never move a stop further away once the trade is open. A planned $3 loss can quietly grow into a $10 or $20 loss.",
+        "In fast markets price can jump past your stop, so the exit may be worse than planned. A stop still beats having no exit at all."
+      ],
+      "questions": [
+        {
+          "id": "l4-q1",
+          "question": "Why is trading without a stop loss risky?",
+          "options": [
+            "Brokers charge an extra fee on every order placed without a stop.",
+            "Take-profit orders stop working.",
+            "It is against the rules of paper trading.",
+            "A small loss can grow into a large one with no planned exit."
+          ],
+          "correctIndex": 3,
+          "explanation": "Without a stop, nothing limits the loss except your own nerve. Sharp moves can do a lot of damage before you react.",
+          "tag": "stop_loss"
+        },
+        {
+          "id": "l4-q2",
+          "question": "What is the main job of a stop loss?",
+          "options": [
+            "Limit the loss when the trade idea is proven wrong.",
+            "Guarantee that every trade you open ends with at least a small profit.",
+            "Borrow more money from the platform.",
+            "Lower trading fees."
+          ],
+          "correctIndex": 0,
+          "explanation": "A stop loss protects your account by exiting when your reason for the trade no longer holds.",
+          "tag": "stop_loss"
+        },
+        {
+          "id": "l4-q3",
+          "question": "You buy at $50 because support sits at $48. Where does your stop belong?",
+          "options": [
+            "At $52, above your entry.",
+            "Just below $48, around $47.",
+            "At $30, to give it lots of room.",
+            "Nowhere, if you feel confident."
+          ],
+          "correctIndex": 1,
+          "explanation": "If price breaks below $48 support, your reason for buying is gone. The stop goes just beyond that level.",
+          "tag": "stop_loss"
+        },
+        {
+          "id": "l4-q4",
+          "question": "A trader buys at $100 with a stop at $95. Price drops to $96 and they move the stop to $90. What is this?",
+          "options": [
+            "A trailing stop.",
+            "Smart rebalancing.",
+            "Avoiding a loss by risking a bigger one.",
+            "Dollar-cost averaging."
+          ],
+          "correctIndex": 2,
+          "explanation": "Moving the stop away doubles the planned risk from $5 to $10 per unit. It is driven by hope, not by the chart.",
+          "tag": "stop_loss"
+        }
+      ],
+      "xp": 20
+    },
+    {
+      "id": "l5-sizing",
+      "order": 5,
+      "tag": "position_sizing",
+      "title": "Position Sizing",
+      "intro": [
+        "Many experienced traders risk only a small fixed share of their account per trade, often around 1%. On a $10,000 account, that is $100.",
+        "Size comes from your stop distance: size = money at risk ÷ stop distance. Risking $100 with a stop $2 away means 50 units.",
+        "Example: buy at $50, stop at $48. $100 ÷ $2 = 50 units. If the stop is hit, you lose about $100, not your whole account.",
+        "At 1% risk, ten losses in a row cost about 10% of the account. At 20% risk, the same streak would leave you with about 11%."
+      ],
+      "questions": [
+        {
+          "id": "l5-q1",
+          "question": "With a $10,000 account and a 1% risk rule, what is the most you plan to lose on one trade?",
+          "options": [
+            "$100",
+            "$500",
+            "$1,000",
+            "$10"
+          ],
+          "correctIndex": 0,
+          "explanation": "1% of $10,000 is $100. If the stop is hit, the loss should be about $100.",
+          "tag": "position_sizing"
+        },
+        {
+          "id": "l5-q2",
+          "question": "You risk $100. Entry is $50, stop is $48. How many units do you buy?",
+          "options": [
+            "200 units",
+            "50 units",
+            "500 units",
+            "25 units"
+          ],
+          "correctIndex": 1,
+          "explanation": "$100 ÷ $2 stop distance = 50 units. If price hits $48 you lose $100.",
+          "tag": "position_sizing"
+        },
+        {
+          "id": "l5-q3",
+          "question": "Your stop has to be twice as far away as usual. What should happen to your position size?",
+          "options": [
+            "Double it.",
+            "Keep it the same, because size and stop distance are unrelated.",
+            "Halve it, so the money at risk stays the same.",
+            "Skip the stop instead."
+          ],
+          "correctIndex": 2,
+          "explanation": "A wider stop means more loss per unit. Halving the size keeps the total risk at your fixed amount.",
+          "tag": "position_sizing"
+        },
+        {
+          "id": "l5-q4",
+          "question": "A beginner with $5,000 opens a $50,000 position using 10x leverage. Price moves 10% against them. What happens?",
+          "options": [
+            "They lose $500.",
+            "Leverage cancels the loss.",
+            "The broker pays half the loss.",
+            "They lose about $5,000, the whole account."
+          ],
+          "correctIndex": 3,
+          "explanation": "10% of $50,000 is $5,000, which is the entire account. Leverage multiplies losses as well as gains.",
+          "tag": "position_sizing"
+        }
+      ],
+      "xp": 20
+    },
+    {
+      "id": "l6-mindset",
+      "order": 6,
+      "tag": "psychology",
+      "title": "Trading Mindset",
+      "intro": [
+        "In the EU, brokers offering CFDs (a leveraged product) must publish how many retail accounts lose money. The figures are commonly above 70%.",
+        "One winning trade proves little. A trade with no plan can win by luck; skill shows up as a repeatable process over many trades.",
+        "Revenge trading means jumping into a bigger, rushed trade right after a loss to win it back. It usually turns one loss into several.",
+        "FOMO, the fear of missing out, pushes you to chase a price that already spiked. A missed move costs nothing; chasing one can."
+      ],
+      "questions": [
+        {
+          "id": "l6-q1",
+          "question": "You just lost $200. You feel angry and want to open a trade twice your usual size right away. What is this?",
+          "options": [
+            "Smart recovery planning.",
+            "Revenge trading.",
+            "Position sizing.",
+            "A trailing stop."
+          ],
+          "correctIndex": 1,
+          "explanation": "Trading bigger out of anger to win back a loss is revenge trading. Taking a break is usually the better move.",
+          "tag": "psychology"
+        },
+        {
+          "id": "l6-q2",
+          "question": "What do EU broker disclosures show about retail CFD accounts?",
+          "options": [
+            "Fewer than 10% lose money.",
+            "Commonly more than 70% lose money.",
+            "About half lose money, as you would expect from a coin flip.",
+            "Almost nobody loses money."
+          ],
+          "correctIndex": 1,
+          "explanation": "Brokers must publish this figure, and it is commonly above 70%. Losing is the norm, which is why process and risk control matter.",
+          "tag": "psychology"
+        },
+        {
+          "id": "l6-q3",
+          "question": "A coin jumps 200% in an hour and you feel you must buy now. What is the disciplined response?",
+          "options": [
+            "Buy right away with your whole account before it climbs higher.",
+            "Borrow money to buy more.",
+            "Notice the FOMO and wait for a clear setup with a stop.",
+            "Short it with 50x leverage."
+          ],
+          "correctIndex": 2,
+          "explanation": "Chasing a vertical move often means buying near the top. Waiting for structure lets you define your risk.",
+          "tag": "psychology"
+        },
+        {
+          "id": "l6-q4",
+          "question": "You buy with no plan and no stop because it 'feels right', and make 15%. What is the honest lesson?",
+          "options": [
+            "The result was good, but the process was poor, so it was likely luck.",
+            "Gut feeling is a reliable strategy.",
+            "Stops are unnecessary.",
+            "You should repeat it with a bigger size."
+          ],
+          "correctIndex": 0,
+          "explanation": "A profit does not prove a good decision. Repeating a no-plan trade eventually leads to large losses.",
+          "tag": "psychology"
+        }
+      ],
+      "xp": 20
     }
   ]
 }
