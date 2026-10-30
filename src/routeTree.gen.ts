@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CoachRouteImport } from './routes/coach'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ReplayRouteImport } from './routes/replay'
 import { Route as TradeRouteImport } from './routes/trade'
@@ -19,6 +20,11 @@ import { Route as LessonIdRouteImport } from './routes/lesson.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoachRoute = CoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PracticeRoute = PracticeRouteImport.update({
@@ -49,6 +55,7 @@ const LessonIdRoute = LessonIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/coach': typeof CoachRoute
   '/practice': typeof PracticeRoute
   '/replay': typeof ReplayRoute
   '/trade': typeof TradeRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/coach': typeof CoachRoute
   '/practice': typeof PracticeRoute
   '/replay': typeof ReplayRoute
   '/trade': typeof TradeRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/coach': typeof CoachRoute
   '/practice': typeof PracticeRoute
   '/replay': typeof ReplayRoute
   '/trade': typeof TradeRoute
@@ -75,12 +84,26 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/practice' | '/replay' | '/trade' | '/vision' | '/lesson/$id'
+    | '/'
+    | '/coach'
+    | '/practice'
+    | '/replay'
+    | '/trade'
+    | '/vision'
+    | '/lesson/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/practice' | '/replay' | '/trade' | '/vision' | '/lesson/$id'
+  to:
+    | '/'
+    | '/coach'
+    | '/practice'
+    | '/replay'
+    | '/trade'
+    | '/vision'
+    | '/lesson/$id'
   id:
     | '__root__'
     | '/'
+    | '/coach'
     | '/practice'
     | '/replay'
     | '/trade'
@@ -90,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CoachRoute: typeof CoachRoute
   PracticeRoute: typeof PracticeRoute
   ReplayRoute: typeof ReplayRoute
   TradeRoute: typeof TradeRoute
@@ -104,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coach': {
+      id: '/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof CoachRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/practice': {
@@ -146,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CoachRoute: CoachRoute,
   PracticeRoute: PracticeRoute,
   ReplayRoute: ReplayRoute,
   TradeRoute: TradeRoute,

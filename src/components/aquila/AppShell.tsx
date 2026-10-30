@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { BookOpen, Brain, CandlestickChart, Flame, Heart, ScanEye, Sparkles, TrendingUp } from "lucide-react";
+import { BookOpen, Brain, CandlestickChart, Flame, Heart, Mic, ScanEye, Sparkles, TrendingUp } from "lucide-react";
 import { useProgress } from "@/lib/progress";
 import { DemoPanel } from "./DemoPanel";
 import { WelcomeModal } from "./WelcomeModal";
@@ -11,6 +11,7 @@ const NAV = [
   { to: "/trade", label: "Trade", icon: CandlestickChart },
   { to: "/replay", label: "Next Candle", icon: TrendingUp },
   { to: "/vision", label: "Chart Vision", icon: ScanEye },
+  { to: "/coach", label: "Coach", icon: Mic },
 ] as const;
 
 function Stats() {

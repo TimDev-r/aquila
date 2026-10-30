@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import lessonsData from "@/content/lessons.json";
 import type { Lesson, MascotMood, Trade, TradeReview } from "@/lib/contracts";
 import { useProgress } from "@/lib/progress";
-import { speak, stopSpeaking } from "@/lib/voice/speak";
+import { speakCoach as speak, stopCoach as stopSpeaking } from "@/lib/coach-voice";
 import { ScoreRing } from "./ScoreRing";
 
 const MOOD: Record<TradeReview["verdict"], MascotMood> = {
