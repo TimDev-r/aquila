@@ -16,16 +16,21 @@ export function promptDocs(): { file: string; template: string; markdown: string
         "Grades the reasoning behind a closed paper trade. All numbers in TRADE FACTS (P&L, stop distance, " +
         "risk/reward, position size, trend before entry, max favorable/adverse move) are computed in code; " +
         "the model never does math. The verdict rules are also re-applied in code from the score and the real P&L.",
-      placeholders: "`{{FACTS_JSON}}` trade facts, `{{THESIS}}` the user's reason, `{{CANDLES}}` the 30 candles before entry.",
+      placeholders: "`{{FACTS_JSON}}` trade facts, `{{THESIS}}` the user's reason, `{{CANDLES}}` the 24 candles before entry as [open, high, low, close] with 5 significant digits (timestamps cost tokens and add nothing).",
       template: TRADE_REVIEW_TEMPLATE,
     },
     {
       file: "quiz.md",
       title: "Quiz prompt",
       fn: "generate-quiz",
-      about: "Writes fresh multiple-choice questions for a lesson topic, optionally grounded in a numeric summary of real candles.",
+      about:
+        "Writes fresh multiple-choice questions for a lesson topic, optionally grounded in a numeric summary of real candles. " +
+        "Gemma writes about 27 tokens/s here, so a quiz is split into parallel batches of up to 2 questions, each with its own " +
+        "focus to avoid duplicates; only the first batch gets the candle summary. The code then shuffles the options so the " +
+        "correct answer's position varies.",
       placeholders:
-        "`{{TAG}}` lesson topic, `{{DIFFICULTY}}` 1-3, `{{COUNT}}` number of questions, " +
+        "`{{TAG}}` lesson topic, `{{DIFFICULTY}}` 1-3, `{{COUNT}}` number of questions in this batch, " +
+        "`{{FOCUS}}` the angle for this batch, " +
         "`{{CANDLE_SUMMARY_OR_EMPTY}}` first/last close, change %, high, low and up/down candle counts (or empty).",
       template: QUIZ_TEMPLATE,
     },

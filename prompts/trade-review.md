@@ -4,7 +4,7 @@ Used by the `review-trade` edge function (`supabase/functions/review-trade/`). G
 
 Sent to Gemma 4 (`GEMMA_MODEL`, open-weight) through the Gemini API as a single user turn. The reply is parsed as JSON, validated, and retried once with a correction note if invalid; if Gemma still fails the function answers with a rule-based or canned fallback (`source: "fallback"`).
 
-Placeholders: `{{FACTS_JSON}}` trade facts, `{{THESIS}}` the user's reason, `{{CANDLES}}` the 30 candles before entry.
+Placeholders: `{{FACTS_JSON}}` trade facts, `{{THESIS}}` the user's reason, `{{CANDLES}}` the 24 candles before entry as [open, high, low, close] with 5 significant digits (timestamps cost tokens and add nothing).
 
 Source of truth: `supabase/functions/_shared/prompts.ts` (this file is generated from it).
 
@@ -29,7 +29,7 @@ TRADE FACTS (computed by the app, trust these numbers):
 USER'S THESIS:
 """{{THESIS}}"""
 
-LAST 30 CANDLES BEFORE ENTRY [time, open, high, low, close]:
+LAST 24 CANDLES BEFORE ENTRY, oldest first [open, high, low, close]:
 {{CANDLES}}
 
 Reply with ONLY this JSON object, no other text:

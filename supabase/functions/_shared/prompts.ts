@@ -21,7 +21,7 @@ TRADE FACTS (computed by the app, trust these numbers):
 USER'S THESIS:
 """{{THESIS}}"""
 
-LAST 30 CANDLES BEFORE ENTRY [time, open, high, low, close]:
+LAST 24 CANDLES BEFORE ENTRY, oldest first [open, high, low, close]:
 {{CANDLES}}
 
 Reply with ONLY this JSON object, no other text:
@@ -40,6 +40,7 @@ export const QUIZ_TEMPLATE = `You write multiple-choice questions for Aquila, a 
 Topic: {{TAG}} (one of: candles, trend, support_resistance, stop_loss, position_sizing, risk_reward, psychology)
 Difficulty: {{DIFFICULTY}} (1 = complete beginner, 2 = knows the basics, 3 = practices regularly)
 Number of questions: {{COUNT}}
+Focus: {{FOCUS}}
 {{CANDLE_SUMMARY_OR_EMPTY}}
 
 Rules:
@@ -87,11 +88,18 @@ export function tradeReviewPrompt(factsJson: string, thesis: string, candles: st
   return fill(TRADE_REVIEW_TEMPLATE, { FACTS_JSON: factsJson, THESIS: thesis.replaceAll('"""', '"'), CANDLES: candles });
 }
 
-export function quizPrompt(tag: string, difficulty: number, count: number, candleSummary: string): string {
+export function quizPrompt(
+  tag: string,
+  difficulty: number,
+  count: number,
+  candleSummary: string,
+  focus: string,
+): string {
   return fill(QUIZ_TEMPLATE, {
     TAG: tag,
     DIFFICULTY: String(difficulty),
     COUNT: String(count),
+    FOCUS: focus,
     CANDLE_SUMMARY_OR_EMPTY: candleSummary,
   });
 }
