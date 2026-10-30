@@ -1,0 +1,9 @@
+{
+  "isChart": true,
+  "pattern": "Ascending triangle",
+  "trend": "up",
+  "explanation": "Price keeps testing the same ceiling while the lows rise. Buyers are getting more aggressive each dip.",
+  "keyLevels": ["Resistance near the flat top", "Rising trendline support"],
+  "followUp": { "id": "mf1", "question": "What usually confirms an ascending triangle breakout?", "options": ["A close above resistance", "A long lower wick", "Falling volume", "A red candle"], "correctIndex": 0, "explanation": "A candle closing above the flat top confirms the break.", "tag": "support_resistance" },
+  "source": "mock"
+}

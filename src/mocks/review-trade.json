@@ -1,0 +1,10 @@
+{
+  "score": 58,
+  "verdict": "lucky",
+  "summary": "The trade made money, but the thesis didn't name a clear level or invalidation point.",
+  "whatWentWell": ["You wrote down a reason before entering", "Position size was a small part of your balance"],
+  "mistakes": ["No stop loss to define your risk", "The thesis relied on a feeling rather than a chart level"],
+  "lessonTag": "stop_loss",
+  "coachLine": "Nice profit, but luck is not a strategy. Next time, set a stop and name the level you're trading.",
+  "source": "mock"
+}

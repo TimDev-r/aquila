@@ -1,0 +1,22 @@
+{
+  "lessons": [
+    {
+      "id": "l1-candles",
+      "order": 1,
+      "tag": "candles",
+      "title": "Reading a candle",
+      "intro": [
+        "Each candle shows four prices for one time period: open, high, low and close.",
+        "A green candle closed higher than it opened. A red candle closed lower.",
+        "The thin lines (wicks) show how far price travelled before settling."
+      ],
+      "questions": [
+        { "id": "q1", "question": "What does a green candle mean?", "options": ["Price closed higher than it opened", "Price closed lower than it opened", "Volume was high", "The market is closed"], "correctIndex": 0, "explanation": "Green means the close is above the open.", "tag": "candles" },
+        { "id": "q2", "question": "What do the wicks show?", "options": ["Trading volume", "The highest and lowest prices", "The average price", "Tomorrow's price"], "correctIndex": 1, "explanation": "Wicks mark the high and low reached during the period.", "tag": "candles" },
+        { "id": "q3", "question": "How many prices does one candle summarise?", "options": ["One", "Two", "Three", "Four"], "correctIndex": 3, "explanation": "Open, high, low and close: four prices.", "tag": "candles" },
+        { "id": "q4", "question": "A long upper wick on a red candle suggests…", "options": ["Buyers stayed in control", "Sellers pushed price back down", "Nothing at all", "The chart is broken"], "correctIndex": 1, "explanation": "Price went up but sellers pushed it back down before the close.", "tag": "candles" }
+      ],
+      "xp": 15
+    }
+  ]
+}
