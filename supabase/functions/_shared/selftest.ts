@@ -1,6 +1,9 @@
 // Calls each function's core logic directly with sample data and checks the shapes.
 // Run from the repo root:
 //   deno run -A --no-lock --env-file=.env.local supabase/functions/_shared/selftest.ts
+// Add --eval to also run every sample trade twice through Gemma and print a table
+// (paced for the free tier's 16k input tokens per minute, takes ~4 minutes);
+// --eval=review or --eval=quiz runs only that part.
 import type { Candle, ChartAnalysis, QuizQuestion, Trade, TradeReview } from "./contracts.ts";
 import { HttpError } from "./cors.ts";
 import type { AskStats } from "./json.ts";
@@ -168,6 +171,67 @@ for await (const entry of Deno.readDir(new URL("quiz/", samplesDir))) {
   const fb = fallbackQuiz(req.tag, req.count, "fb");
   check(fb.questions.length === req.count && fb.questions.every(isQuestion),
     `quiz/${entry.name}: fallback returns ${fb.questions.length} of ${req.count}`);
+}
+
+// ~1.5k input tokens per review; one call every 8 s stays under 16k/minute.
+const GAP_MS = 8_000;
+let lastStart = 0;
+async function pace() {
+  const wait = lastStart + GAP_MS - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastStart = Date.now();
+}
+
+const evalArg = Deno.args.find((a) => a.startsWith("--eval"));
+if (evalArg) await runEval(evalArg.split("=")[1] ?? "all");
+
+async function runEval(part: string) {
+  if (part === "all" || part === "review") await evalReviews();
+  if (part === "all" || part === "quiz") await evalQuizzes();
+}
+
+async function evalReviews() {
+  console.log("sample                   expected verdict  score source   latency retries");
+  const rows: { match: boolean; gemma: boolean; ms: number; retries: number }[] = [];
+  for (const [file, want] of Object.entries(expected)) {
+    const { trade, candles } = parseReviewRequest(JSON.parse(await Deno.readTextFile(new URL(`trades/${file}`, samplesDir))));
+    for (let run = 1; run <= 2; run++) {
+      await pace();
+      const { result: r, ms, stats } = await timed((st) => reviewTrade(trade, candles, st));
+      rows.push({ match: r.verdict === want, gemma: r.source === "gemma", ms, retries: stats.retries });
+      console.log(
+        `${file.padEnd(24)} ${want.padEnd(8)} ${r.verdict.padEnd(8)} ${String(r.score).padStart(5)} ${r.source.padEnd(8)} ` +
+          `${(ms / 1000).toFixed(1).padStart(6)}s ${String(stats.retries).padStart(7)}${r.verdict === want ? "" : "  <- mismatch"}`,
+      );
+    }
+  }
+  const gemmaRows = rows.filter((r) => r.gemma);
+  const avg = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+  console.log(
+    `match rate: ${rows.filter((r) => r.match).length}/${rows.length} overall, ` +
+      `${gemmaRows.filter((r) => r.match).length}/${gemmaRows.length} answered by Gemma; ` +
+      `avg Gemma latency ${(avg(gemmaRows.map((r) => r.ms)) / 1000).toFixed(1)} s; ` +
+      `JSON retries ${rows.reduce((a, r) => a + r.retries, 0)}; fallbacks ${rows.length - gemmaRows.length}`,
+  );
+
+}
+
+async function evalQuizzes() {
+  console.log("\n== eval: generate-quiz samples (Gemma)");
+  for await (const entry of Deno.readDir(new URL("quiz/", samplesDir))) {
+    const req = parseQuizRequest(JSON.parse(await Deno.readTextFile(new URL(`quiz/${entry.name}`, samplesDir))));
+    await pace();
+    const { result, ms, stats } = await timed((st) => generateQuiz(req, st));
+    const qs = result.questions;
+    const distinct = qs.every((q) => new Set(q.options.map((o) => o.toLowerCase())).size === 4);
+    const positions = qs.map((q) => q.correctIndex).join("");
+    const longExplanations = qs.filter((q) => (q.explanation.match(/[.!?](\s|$)/g) ?? []).length > 2).length;
+    console.log(
+      `${entry.name.padEnd(20)} ${result.source.padEnd(8)} ${(ms / 1000).toFixed(1)}s questions=${qs.length} ` +
+        `distinctOptions=${distinct} correctIndex=${positions} explanations>2 sentences=${longExplanations} retries=${stats.retries}`,
+    );
+    for (const q of qs) console.log(`   - ${q.question}\n     ${q.options.map((o, i) => (i === q.correctIndex ? `[${o}]` : o)).join(" | ")}`);
+  }
 }
 
 console.log(failures ? `\n${failures} check(s) FAILED` : "\nAll checks passed");
