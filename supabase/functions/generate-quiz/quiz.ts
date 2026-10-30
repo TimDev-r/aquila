@@ -72,19 +72,79 @@ export function fallbackQuiz(tag: LessonTag, count: number, idPrefix: string): Q
   return { questions, source: "fallback" };
 }
 
+/** Different angles per batch, so parallel batches don't write the same question. */
+const FOCUSES = [
+  "a practical situation with concrete prices (for example: you buy at 100 with a stop at 95)",
+  "a common beginner mistake and why it goes wrong",
+  "reading what a chart or a price move shows",
+  "a rule of thumb applied to a short scenario",
+];
+const BATCH_SIZE = 2;
+
+/** Moves the correct answer to a random position; skips options that refer to each other. */
+function shuffleOptions(q: QuizQuestion): QuizQuestion {
+  if (q.options.some((o) => /\b(all|none|both) of (the|these)\b|\bboth [a-d]\b/i.test(o))) return q;
+  const order = shuffle([0, 1, 2, 3]);
+  return { ...q, options: order.map((i) => q.options[i]), correctIndex: order.indexOf(q.correctIndex) };
+}
+
+const words = (text: string) =>
+  new Set(text.toLowerCase().replace(/[^a-z\s-]/g, " ").split(/\s+/).filter((w) => w.length > 3));
+
+/**
+ * Parallel batches can't see each other and like the same classic scenario, so
+ * near-duplicates are dropped by word overlap (Jaccard). In Gemma's output,
+ * rewordings of one scenario scored 0.31-0.58 and different questions <= 0.26.
+ */
+function isDuplicate(text: string, kept: Set<string>[]): boolean {
+  const a = words(text);
+  return kept.some((b) => {
+    let shared = 0;
+    for (const w of a) if (b.has(w)) shared++;
+    return shared / (a.size + b.size - shared) >= 0.3;
+  });
+}
+
 export async function generateQuiz(req: QuizRequest, stats?: AskStats): Promise<QuizResponse> {
   const idPrefix = `q-${Date.now()}`;
-  const prompt = quizPrompt(req.tag, req.difficulty, req.count, candleSummary(req.candles));
-  try {
-    const questions = await askJson(
-      [{ text: prompt }],
-      (raw) => validateQuiz(raw, req.tag, req.count, idPrefix),
-      // Room for thinking plus ~200 tokens per question.
-      { maxOutputTokens: 600 + 250 * req.count, stats },
-    );
-    return { questions, source: "gemma" };
-  } catch (e) {
-    console.error("generate-quiz: Gemma failed, using lesson questions:", (e as Error).message);
+  const summary = candleSummary(req.candles);
+  // Gemma writes ~27 tokens/s here, so one call for 5 questions takes 25 s+.
+  // Parallel batches of up to 2 questions finish in about the time of one.
+  const sizes = Array.from({ length: Math.ceil(req.count / BATCH_SIZE) }, (_, i) =>
+    Math.min(BATCH_SIZE, req.count - i * BATCH_SIZE));
+  const batches = await Promise.allSettled(sizes.map((n, i) =>
+    askJson(
+      [{ text: quizPrompt(req.tag, req.difficulty, n, i === 0 ? summary : "", FOCUSES[i % FOCUSES.length]) }],
+      (raw) => validateQuiz(raw, req.tag, n, `${idPrefix}-b${i}`),
+      // Room for thinking plus ~250 tokens per question; hedge late, batches are short.
+      { maxOutputTokens: 400 + 250 * n, hedgeAfterMs: 10_000, stats },
+    )
+  ));
+
+  const kept: Set<string>[] = [];
+  const questions: QuizQuestion[] = [];
+  for (const b of batches) {
+    if (b.status === "rejected") {
+      console.error("generate-quiz: a batch failed:", (b.reason as Error)?.message);
+      continue;
+    }
+    for (const q of b.value) {
+      if (questions.length < req.count && !isDuplicate(q.question, kept)) {
+        kept.push(words(q.question));
+        questions.push(shuffleOptions(q));
+      }
+    }
+  }
+  if (questions.length === 0) {
+    console.error("generate-quiz: Gemma failed, using lesson questions");
     return fallbackQuiz(req.tag, req.count, idPrefix);
   }
+  // A failed batch or dropped duplicates are topped up with lesson questions.
+  const topUp = fallbackQuiz(req.tag, req.count, idPrefix).questions
+    .filter((q) => !isDuplicate(q.question, kept))
+    .slice(0, req.count - questions.length);
+  return {
+    questions: [...questions, ...topUp].map((q, i) => ({ ...q, id: `${idPrefix}-${i + 1}` })),
+    source: "gemma",
+  };
 }

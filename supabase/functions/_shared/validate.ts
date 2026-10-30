@@ -79,6 +79,7 @@ export function validateQuestion(raw: unknown, id: string, tag: LessonTag): Quiz
   const o = obj(raw, "Question");
   if (!Array.isArray(o.options) || o.options.length !== 4) throw new Error("A question needs exactly 4 options");
   const options = o.options.map((x, i) => str(typeof x === "number" ? String(x) : x, `option ${i}`));
+  if (new Set(options.map((x) => x.toLowerCase())).size !== 4) throw new Error("Options must be distinct");
   const correctIndex = int(o.correctIndex, "correctIndex");
   if (correctIndex < 0 || correctIndex > 3) throw new Error(`correctIndex out of range: ${correctIndex}`);
   return {
