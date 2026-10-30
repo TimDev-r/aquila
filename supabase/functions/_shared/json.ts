@@ -43,8 +43,8 @@ export async function askJson<T>(
       const reason = String((e as Error).message ?? e).slice(0, 300);
       console.error(`askJson attempt ${attempt} failed: ${reason}`);
       stats?.errors.push(reason.slice(0, 200));
-      // A timeout leaves no time for a second try; missing config won't fix itself.
-      if (/timed out|is not set/.test(reason)) break;
+      // A timeout leaves no time for a second try; missing config or quota won't fix itself.
+      if (/timed out|is not set|quota exhausted/.test(reason)) break;
     }
   }
   throw lastError ?? new Error("Gemma budget exhausted");
