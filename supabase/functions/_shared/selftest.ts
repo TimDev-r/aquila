@@ -5,7 +5,7 @@ import type { Candle, ChartAnalysis, QuizQuestion, Trade, TradeReview } from "./
 import { HttpError } from "./cors.ts";
 import type { AskStats } from "./json.ts";
 import { promptDocs } from "./promptDocs.ts";
-import { LESSON_TAGS } from "./validate.ts";
+import { LESSON_TAGS, verdictFor } from "./validate.ts";
 import { computeFacts, parseReviewRequest, reviewTrade, ruleBasedReview } from "../review-trade/review.ts";
 import { fallbackQuiz, generateQuiz, parseQuizRequest } from "../generate-quiz/quiz.ts";
 import { analyzeChart, fallbackAnalysis, parseChartRequest } from "../analyze-chart/analyze.ts";
@@ -186,9 +186,13 @@ for (const q of quiz.result.questions) {
 check(quiz.result.questions.length > 0 && quiz.result.questions.every(isQuestion) &&
   quiz.result.questions.every((q) => q.tag === "trend"), `shape ok, ${quiz.result.questions.length} questions, ${quiz.ms} ms, ${source(quiz.result.source, quiz.stats)}`);
 for (const tag of LESSON_TAGS) {
-  const fb = fallbackQuiz(tag, 5, "fb");
-  check(fb.questions.length >= 3 && fb.questions.every(isQuestion) && fb.questions.every((q) => q.tag === tag),
-    `fallback quiz for ${tag}: ${fb.questions.length} questions`);
+  for (const count of [5, 8]) {
+    const fb = fallbackQuiz(tag, count, "fb");
+    const own = fb.questions.filter((q) => q.tag === tag).length;
+    check(fb.questions.length === count && fb.questions.every(isQuestion) && own >= Math.min(4, count) &&
+      new Set(fb.questions.map((q) => q.question)).size === count,
+      `fallback quiz ${tag} x${count}: ${fb.questions.length} questions, ${own} tagged ${tag}`);
+  }
 }
 
 console.log("\n== analyze-chart: rendered BTC candlestick PNG");
@@ -198,6 +202,26 @@ const chart = await timed((stats) => analyzeChart(imageBase64, mimeType, stats))
 console.log(JSON.stringify(chart.result, null, 2));
 check(isAnalysis(chart.result), `shape ok, ${chart.ms} ms, ${source(chart.result.source, chart.stats)}`);
 check(isAnalysis(fallbackAnalysis("fb")), "fallback analysis shape ok");
+
+console.log("\n== samples from scripts/samples/ (rule-based fallback, no Gemma)");
+const samplesDir = new URL("scripts/samples/", root);
+const expected: Record<string, TradeReview["verdict"]> = JSON.parse(
+  await Deno.readTextFile(new URL("trades/expected.json", samplesDir)).catch(() => "{}"),
+);
+for (const [file, want] of Object.entries(expected)) {
+  const { trade, candles } = parseReviewRequest(JSON.parse(await Deno.readTextFile(new URL(`trades/${file}`, samplesDir))));
+  const f = computeFacts(trade, candles);
+  const r = ruleBasedReview(f, trade.thesis);
+  const consistent = isReview(r) && verdictFor(r.score, f.pnl) === r.verdict &&
+    (r.verdict !== "great" || r.mistakes.length === 0);
+  check(r.verdict === want && consistent, `${file.padEnd(24)} expected ${want.padEnd(8)} got ${r.verdict.padEnd(8)} score ${r.score}`);
+}
+for await (const entry of Deno.readDir(new URL("quiz/", samplesDir))) {
+  const req = parseQuizRequest(JSON.parse(await Deno.readTextFile(new URL(`quiz/${entry.name}`, samplesDir))));
+  const fb = fallbackQuiz(req.tag, req.count, "fb");
+  check(fb.questions.length === req.count && fb.questions.every(isQuestion),
+    `quiz/${entry.name}: fallback returns ${fb.questions.length} of ${req.count}`);
+}
 
 console.log(failures ? `\n${failures} check(s) FAILED` : "\nAll checks passed");
 Deno.exit(failures ? 1 : 0);
