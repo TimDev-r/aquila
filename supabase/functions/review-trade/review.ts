@@ -6,7 +6,10 @@ import { tradeReviewPrompt } from "../_shared/prompts.ts";
 import { validateTradeReview } from "../_shared/validate.ts";
 
 const STARTING_BALANCE = 10_000;
-const CONTEXT_CANDLES = 30;
+/** Window for trendBeforeEntryPct. */
+const TREND_CANDLES = 30;
+/** Candles shown to Gemma; numbers cost about one token per digit, so keep it short. */
+const PROMPT_CANDLES = 24;
 
 export type TradeFacts = {
   side: Trade["side"];
@@ -54,7 +57,7 @@ export function computeFacts(trade: Trade, candles: Candle[]): TradeFacts {
   const dir = side === "long" ? 1 : -1;
   const pnl = isNum(trade.pnl) ? trade.pnl : (exit - entry) * trade.size * dir;
 
-  const before = candles.filter((c) => c.time < trade.openedAt).slice(-CONTEXT_CANDLES);
+  const before = candles.filter((c) => c.time < trade.openedAt).slice(-TREND_CANDLES);
   const closedAt = isNum(trade.closedAt) ? trade.closedAt : Infinity;
   const during = candles.filter((c) => c.time >= trade.openedAt && c.time <= closedAt);
 
@@ -120,6 +123,8 @@ export function ruleBasedReview(f: TradeFacts, thesis: string): TradeReview {
   const sensibleStop = stop !== null && stop >= 0.2 && stop <= 5;
   const absurdStop = stop !== null && (stop < 0.2 || stop > 10);
   const goodRR = f.riskReward !== null && f.riskReward >= 1.5;
+  // Share of the balance lost if the stop is hit. Kept out of the Gemma facts on
+  // purpose: with it, Gemma rated almost every trade with a stop as "great".
   const accountRiskPct = stop !== null ? (f.positionValuePct * stop) / 100 : null;
   const sizedRisk = SIZED_RISK.test(thesis) && accountRiskPct !== null && accountRiskPct <= 1;
   const oversized = f.positionValuePct > 50;
@@ -231,11 +236,13 @@ export function ruleBasedReview(f: TradeFacts, thesis: string): TradeReview {
   };
 }
 
+/** [open, high, low, close] rows, oldest first, 5 significant digits (2489.28 -> 2489.3). */
 export function candleRows(trade: Trade, candles: Candle[]): string {
+  const p5 = (n: number) => Number(n.toPrecision(5));
   return candles
     .filter((c) => c.time < trade.openedAt)
-    .slice(-CONTEXT_CANDLES)
-    .map((c) => JSON.stringify([c.time, r2(c.open), r2(c.high), r2(c.low), r2(c.close)]))
+    .slice(-PROMPT_CANDLES)
+    .map((c) => JSON.stringify([p5(c.open), p5(c.high), p5(c.low), p5(c.close)]))
     .join("\n") || "(no candles before entry)";
 }
 
