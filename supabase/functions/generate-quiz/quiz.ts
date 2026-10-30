@@ -58,10 +58,17 @@ function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
+/**
+ * Exactly `count` questions: the requested tag first (lessons, then extras), topped
+ * up with questions from other topics, which keep their own tag.
+ */
 export function fallbackQuiz(tag: LessonTag, count: number, idPrefix: string): QuizResponse {
-  let pool = FALLBACK_QUESTIONS.filter((q) => q.tag === tag);
-  if (pool.length < count) pool = [...pool, ...EXTRA_QUESTIONS.filter((q) => q.tag === tag)];
-  const questions = shuffle(pool).slice(0, count).map((q, i) => ({ ...q, id: `${idPrefix}-${i + 1}` }));
+  const all = [...FALLBACK_QUESTIONS, ...EXTRA_QUESTIONS];
+  const pool = [
+    ...shuffle(all.filter((q) => q.tag === tag)),
+    ...shuffle(all.filter((q) => q.tag !== tag)),
+  ];
+  const questions = pool.slice(0, count).map((q, i) => ({ ...q, id: `${idPrefix}-${i + 1}` }));
   return { questions, source: "fallback" };
 }
 
