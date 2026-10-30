@@ -8,15 +8,20 @@ export type Part =
 export type GemmaOptions = {
   temperature?: number;
   maxOutputTokens?: number;
-  /** Total time for the call, including one retry on a 5xx. */
+  /** Total time for the call, including retries and the hedged request. */
   timeoutMs?: number;
   /** Gemma 4 thinks before answering; "minimal" cuts latency a lot. null = model default. */
   thinkingLevel?: "minimal" | "low" | "medium" | "high" | null;
-  /** Identical requests sent at once; the first answer wins. Default 2. */
-  parallel?: number;
+  /** Send a second identical request if the first has not answered by then. null = never. */
+  hedgeAfterMs?: number | null;
 };
 
 const API = "https://generativelanguage.googleapis.com/v1beta/models";
+/** Don't retry when less than this is left: a Gemma answer takes 7 s or more. */
+const MIN_RETRY_TIME_MS = 6_000;
+const BACKOFF_MS = { rateLimited: 1_500, serverError: 400 };
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function callGemma(parts: Part[], opts: GemmaOptions = {}): Promise<string> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
@@ -31,12 +36,13 @@ export async function callGemma(parts: Part[], opts: GemmaOptions = {}): Promise
   if (thinkingLevel) generationConfig.thinkingConfig = { thinkingLevel };
   const body = JSON.stringify({ contents: [{ role: "user", parts }], generationConfig });
 
-  const timeoutMs = opts.timeoutMs ?? 20_000;
+  const timeoutMs = opts.timeoutMs ?? 18_000;
+  const deadline = Date.now() + timeoutMs;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  // One request: retries a 5xx once (the API returns sporadic 500/503s).
-  const lane = async (): Promise<string> => {
+  // One request; retries a 429 or 5xx once after a short backoff if time allows.
+  const lane = async (name: string): Promise<string> => {
     for (let attempt = 1; ; attempt++) {
       const res = await fetch(`${API}/${model}:generateContent`, {
         method: "POST",
@@ -44,28 +50,56 @@ export async function callGemma(parts: Part[], opts: GemmaOptions = {}): Promise
         body,
         signal: controller.signal,
       });
-      if (res.status >= 500 && attempt === 1) {
-        await res.body?.cancel();
-        continue;
+      if (!res.ok) {
+        const detail = (await res.text()).slice(0, 300).replace(/\s+/g, " ");
+        console.error(`gemma ${name} attempt ${attempt}: HTTP ${res.status} ${detail}`);
+        const backoff = res.status === 429 ? BACKOFF_MS.rateLimited : res.status >= 500 ? BACKOFF_MS.serverError : null;
+        if (backoff !== null && attempt === 1 && deadline - Date.now() - backoff > MIN_RETRY_TIME_MS) {
+          await sleep(backoff);
+          continue;
+        }
+        throw new Error(`Gemma HTTP ${res.status}: ${detail}`);
       }
-      if (!res.ok) throw new Error(`Gemma HTTP ${res.status}: ${(await res.text()).slice(0, 500)}`);
       const data = await res.json();
       const outParts: { text?: string; thought?: boolean }[] = data?.candidates?.[0]?.content?.parts ?? [];
       const text = outParts.filter((p) => p.thought !== true).map((p) => p.text ?? "").join("");
       if (!text.trim()) {
-        throw new Error(`Gemma returned no text (finishReason ${data?.candidates?.[0]?.finishReason ?? "?"})`);
+        const reason = `Gemma returned no text (finishReason ${data?.candidates?.[0]?.finishReason ?? "?"})`;
+        console.error(`gemma ${name}: ${reason}`);
+        throw new Error(reason);
       }
       return text;
     }
   };
 
   try {
-    // Latency on this API is dominated by queueing, so identical parallel requests
-    // cut the wait a lot: the first answer wins and the rest are aborted.
-    return await Promise.any(Array.from({ length: Math.max(1, opts.parallel ?? 2) }, lane));
+    // Latency here is mostly queueing on Google's side, so a slow request is
+    // hedged with a second one; whichever answers first wins. Only slow calls
+    // are doubled, which keeps the request rate (and 429s) down.
+    const first = lane("request 1");
+    const hedgeAfter = opts.hedgeAfterMs === undefined ? 7_000 : opts.hedgeAfterMs;
+    if (hedgeAfter === null || hedgeAfter >= timeoutMs - MIN_RETRY_TIME_MS) return await first;
+    let hedgeStarted = false;
+    const hedge = new Promise<string>((resolve, reject) => {
+      const t = setTimeout(() => {
+        hedgeStarted = true;
+        lane("request 2 (hedge)").then(resolve, reject);
+      }, hedgeAfter);
+      first.then(() => clearTimeout(t), () => {
+        if (!hedgeStarted) {
+          clearTimeout(t);
+          reject(new Error("hedge not needed"));
+        }
+      });
+    });
+    return await Promise.any([first, hedge]);
   } catch (e) {
-    if (controller.signal.aborted) throw new Error(`Gemma timed out after ${timeoutMs} ms`);
-    throw e instanceof AggregateError ? e.errors[0] : e;
+    const err = e instanceof AggregateError ? e.errors[0] : e;
+    if (controller.signal.aborted) {
+      console.error(`gemma: timed out after ${timeoutMs} ms`);
+      throw new Error(`Gemma timed out after ${timeoutMs} ms`);
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
     controller.abort();
