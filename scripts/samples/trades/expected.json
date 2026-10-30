@@ -1,0 +1,12 @@
+{
+  "lucky-win.json": "lucky",
+  "unlucky-loss.json": "unlucky",
+  "great-win.json": "great",
+  "oversized.json": "poor",
+  "tight-stop.json": "poor",
+  "good-short.json": "good",
+  "level-no-stop.json": "poor",
+  "early-manual-exit.json": "good",
+  "take-profit-hit.json": "good",
+  "stop-hit.json": "poor"
+}
