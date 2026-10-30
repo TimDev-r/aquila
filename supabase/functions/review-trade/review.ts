@@ -3,7 +3,7 @@ import type { Candle, LessonTag, Trade, TradeReview } from "../_shared/contracts
 import { HttpError } from "../_shared/cors.ts";
 import { askJson, type AskStats } from "../_shared/json.ts";
 import { tradeReviewPrompt } from "../_shared/prompts.ts";
-import { validateTradeReview, verdictFor } from "../_shared/validate.ts";
+import { validateTradeReview } from "../_shared/validate.ts";
 
 const STARTING_BALANCE = 10_000;
 const CONTEXT_CANDLES = 30;
@@ -96,51 +96,127 @@ export function computeFacts(trade: Trade, candles: Candle[]): TradeFacts {
 
 const THESIS_WORDS =
   /support|resistance|trend|breakout|bounce|level|stop|risk|volume|pattern|\brsi\b|moving average|\bma\b/i;
+/** "risk about 0.2% of my account": the user sized the trade by risk, not by position value. */
+const SIZED_RISK = /\d+(\.\d+)?\s*%\s*of\s+(my|the)\s+(account|balance)/i;
 
+type Issue = { tag: LessonTag; mistake: string; fix: string };
+
+const SCORE_RANGE: Record<TradeReview["verdict"], [number, number]> = {
+  lucky: [0, 45],
+  poor: [0, 55],
+  unlucky: [60, 100],
+  good: [60, 79],
+  great: [80, 100],
+};
+
+/**
+ * Process first, then outcome: a weak process is "lucky" on a win and "poor" on a
+ * loss; a sound process is "unlucky" on a loss, "good" on a win, and "great" only
+ * with no mistakes at all. Score, summary and coachLine follow the verdict.
+ */
 export function ruleBasedReview(f: TradeFacts, thesis: string): TradeReview {
   const specificThesis = thesis.trim().length >= 60 && THESIS_WORDS.test(thesis);
-  const sensibleStop = f.stopDistancePct !== null && f.stopDistancePct >= 0.2 && f.stopDistancePct <= 5;
+  const stop = f.stopDistancePct;
+  const sensibleStop = stop !== null && stop >= 0.2 && stop <= 5;
+  const absurdStop = stop !== null && (stop < 0.2 || stop > 10);
   const goodRR = f.riskReward !== null && f.riskReward >= 1.5;
-  const oversized = f.positionValuePct > 20;
+  const accountRiskPct = stop !== null ? (f.positionValuePct * stop) / 100 : null;
+  const sizedRisk = SIZED_RISK.test(thesis) && accountRiskPct !== null && accountRiskPct <= 1;
+  const oversized = f.positionValuePct > 50;
+  const largePosition = f.positionValuePct > 20 && !oversized && !sizedRisk;
 
-  let score = 40;
-  if (specificThesis) score += 20;
-  if (f.hasStopLoss) score += 20;
-  if (sensibleStop) score += 10;
-  if (goodRR) score += 10;
-  if (oversized) score -= 20;
-  score = Math.min(100, Math.max(0, score));
+  // Weak process: any of these makes the result luck or a deserved loss.
+  const major: Issue[] = [];
+  if (!f.hasStopLoss) {
+    major.push({ tag: "stop_loss", mistake: "There was no stop loss, so the possible loss had no limit.", fix: "always set a stop loss" });
+  }
+  if (oversized) {
+    major.push({
+      tag: "position_sizing",
+      mistake: `You put ${f.positionValuePct}% of your balance in one trade; under 20% is safer.`,
+      fix: "keep each trade small",
+    });
+  }
+  if (absurdStop) {
+    major.push({
+      tag: "stop_loss",
+      mistake: `Your stop was ${stop}% away, so normal price noise could hit it; 0.2% to 5% is usually sensible.`,
+      fix: "give your stop room to breathe",
+    });
+  }
+  if (!specificThesis) {
+    major.push({
+      tag: "support_resistance",
+      mistake: "Your reason was vague; name a level, trend or pattern you can see on the chart.",
+      fix: "base the trade on something you can point to on the chart",
+    });
+  }
+  // Smaller mistakes: a sound trade with any of these is "good", not "great".
+  const minor: Issue[] = [];
+  if (largePosition) {
+    minor.push({
+      tag: "position_sizing",
+      mistake: `You put ${f.positionValuePct}% of your balance in one trade; under 20% is safer for a beginner.`,
+      fix: "use a smaller position",
+    });
+  }
+  if (stop !== null && !sensibleStop && !absurdStop) {
+    minor.push({
+      tag: "stop_loss",
+      mistake: `Your stop was ${stop}% away, which is wide; 0.2% to 5% is usually sensible.`,
+      fix: "tighten your stop",
+    });
+  }
+  if (f.hasStopLoss && !goodRR) {
+    minor.push({
+      tag: "risk_reward",
+      mistake: f.riskReward === null
+        ? "There was no target, so you could not compare the reward with the risk."
+        : `Your target paid only ${f.riskReward}x what you risked; aim for at least 1.5x.`,
+      fix: "plan a target worth at least 1.5x your risk",
+    });
+  }
+
+  const weak = major.length > 0;
+  const profit = f.pnl > 0;
+  const verdict: TradeReview["verdict"] = weak
+    ? (profit ? "lucky" : "poor")
+    : !profit
+    ? "unlucky"
+    : minor.length
+    ? "good"
+    : "great";
+
+  const exitByPlan = f.exitReason === "stop_loss" || f.exitReason === "take_profit";
+  const raw = (specificThesis ? 35 : 10) + (sizedRisk ? 5 : 0) + // thesis 0-40
+    Math.min(oversized ? 10 : 40, (f.hasStopLoss ? 15 : 0) + (sensibleStop ? 10 : 0) + (goodRR ? 10 : 0) +
+      (largePosition || oversized ? 0 : 5)) + // risk 0-40
+    (exitByPlan ? 20 : f.hasStopLoss ? 12 : 5); // discipline 0-20
+  const [lo, hi] = SCORE_RANGE[verdict];
+  const score = Math.min(hi, Math.max(lo, raw));
 
   const whatWentWell: string[] = [];
-  const mistakes: string[] = [];
   if (specificThesis) whatWentWell.push("Your reason pointed at something on the chart you could check.");
-  else mistakes.push("Your reason was vague; name a level, trend or pattern you can see.");
-  if (f.hasStopLoss) whatWentWell.push("You set a stop loss, so your risk was limited.");
-  else mistakes.push("There was no stop loss, so the possible loss had no limit.");
-  if (f.hasStopLoss && !sensibleStop) mistakes.push(`Your stop was ${f.stopDistancePct}% away; between 0.2% and 5% is usually more sensible.`);
+  if (sensibleStop) whatWentWell.push("You set a stop loss at a sensible distance, so your risk was limited.");
+  if (sizedRisk) whatWentWell.push(`You sized the trade so only about ${r2(accountRiskPct!)}% of your account was at risk.`);
   if (goodRR) whatWentWell.push(`Your target paid ${f.riskReward}x what you risked.`);
-  if (oversized) mistakes.push(`You put ${f.positionValuePct}% of your balance in one trade; under 20% is safer.`);
+  if (exitByPlan && f.hasStopLoss) whatWentWell.push("You let your plan close the trade instead of guessing.");
 
-  const lessonTag: LessonTag = !f.hasStopLoss ? "stop_loss" : oversized ? "position_sizing" : !specificThesis
-    ? "support_resistance"
-    : !goodRR
-    ? "risk_reward"
-    : "psychology";
-  const verdict = verdictFor(score, f.pnl);
-
+  const issues = [...major, ...minor];
+  const fix = issues[0]?.fix;
   const summary = {
-    lucky: "You made money, but the plan behind it was weak, so this profit was mostly luck.",
+    lucky: `You made money, but the plan behind it was weak, so this profit was mostly luck. Next time, ${fix}.`,
+    poor: `This trade lost money and the plan behind it was weak. The biggest fix: ${fix}.`,
     unlucky: "You lost money, but your plan was sound; a good process can still lose.",
+    good: `A sound plan that worked; one thing to sharpen: ${fix}.`,
     great: "A clear reason and solid risk control: this is how a well-planned trade looks.",
-    good: "A decent plan with room to sharpen; keep building on what worked.",
-    poor: "This trade lacked a clear plan; focus on one fix for next time.",
   }[verdict];
   const coachLine = {
     lucky: "A win without a plan is luck. Let's turn luck into skill, one clear reason at a time.",
-    unlucky: "Good plan, bad outcome. Keep the process; the results follow over many trades.",
-    great: "Sharp eyes and a steady wing. That is a trade worth repeating.",
-    good: "Solid flying. Tighten one thing, and you'll soar even higher.",
     poor: "Every eagle learns to fly by falling. Pick one fix and try again.",
+    unlucky: "Good plan, bad outcome. Keep the process; the results follow over many trades.",
+    good: "Solid flying. Tighten one thing, and you'll soar even higher.",
+    great: "Sharp eyes and a steady wing. That is a trade worth repeating.",
   }[verdict];
 
   return {
@@ -148,8 +224,8 @@ export function ruleBasedReview(f: TradeFacts, thesis: string): TradeReview {
     verdict,
     summary,
     whatWentWell: whatWentWell.slice(0, 3),
-    mistakes: mistakes.slice(0, 3),
-    lessonTag,
+    mistakes: issues.map((i) => i.mistake).slice(0, 3),
+    lessonTag: issues[0]?.tag ?? (verdict === "unlucky" ? "psychology" : "risk_reward"),
     coachLine,
     source: "fallback",
   };
