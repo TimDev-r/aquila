@@ -68,7 +68,9 @@ async function main() {
   try {
     res = await fetch(endpoint, { method: "POST", headers, body, signal: AbortSignal.timeout(60_000) });
   } catch (e) {
-    fail(`Request failed after ${Math.round(performance.now() - started)} ms: ${(e as Error).message}`);
+    console.error(`Request failed after ${Math.round(performance.now() - started)} ms: ${(e as Error).message}`);
+    process.exitCode = 1;
+    return;
   }
   const text = await res.text();
   const ms = Math.round(performance.now() - started);
@@ -79,7 +81,8 @@ async function main() {
   } catch {
     console.log(text);
   }
-  if (!res.ok) process.exit(1);
+  // exitCode instead of process.exit(): exiting while the socket closes crashes Node on Windows.
+  if (!res.ok) process.exitCode = 1;
 }
 
 void main();
